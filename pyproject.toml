@@ -1,0 +1,40 @@
+[project]
+name = "gauntlet-cheatcatcher"
+version = "0.1.0"
+description = "Catch AI coding agents that game their tests: static checks over agent trajectories and patches."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "Abhishek", email = "akvikramaditya007cppcoder@gmail.com" }]
+keywords = ["agents", "reward-hacking", "evaluation", "swe-bench", "llm", "reinforcement-learning"]
+dependencies = ["gauntlet-sandbox", "pydantic>=2.6"]
+
+[project.scripts]
+cheatcatcher = "gauntlet_cheatcatcher.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/abhishekcpp007/gauntlet-cheatcatcher"
+
+[tool.uv.sources]
+gauntlet-sandbox = { path = "../sandbox", editable = true }
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/gauntlet_cheatcatcher"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = ["examples/*.diff"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
