@@ -7,6 +7,7 @@ on honest work is worse than no rule, because people stop reading the report.
 from __future__ import annotations
 
 import re
+from collections import Counter
 from collections.abc import Callable, Iterable, Iterator
 from pathlib import PurePosixPath
 
@@ -138,6 +139,20 @@ CONFIG_DANGER = re.compile(
     r"--last-failed|--lf\b|--runxfail|--disable-warnings.*-q\s+-x"
 )
 PYTEST_CONFIG = {"pytest.ini", ".pytest.ini", "tox.ini", "setup.cfg", "pyproject.toml"}
+OPTION = re.compile(r"(?<![\w-])--?[A-Za-z][\w-]*(?:=[^\s\"',\]]+)?")
+
+
+def _options(lines: list[str]) -> Counter[str]:
+    return Counter(tok for ln in lines for tok in OPTION.findall(ln.split("#", 1)[0]))
+
+
+def _moves_addopts(ch: Change, keys: list[str]) -> bool:
+    """addopts moved or reshaped with the same options, like cattrs 26.2 going from
+    [tool.pytest.ini_options] with one string to pytest 9's [tool.pytest] with a list."""
+    if not all(k.split("=", 1)[0].strip() == "addopts" for k in keys):
+        return False
+    added = _options(ch.added)
+    return bool(added) and added == _options(ch.removed)
 
 
 @rule("pytest-config")
@@ -151,6 +166,8 @@ def pytest_config(ctx: Context) -> Iterator[Finding]:
         section = _grep(ch.added, re.compile(r"^\s*\[(tool:pytest|pytest|tool\.pytest[^\]]*)\]"))
         if danger and (keys or section or ch.name in {"pytest.ini", ".pytest.ini"}):
             yield _on_change("pytest-config", "high", "pytest config now skips or filters tests", ch, danger[0])
+        elif keys and _moves_addopts(ch, keys):
+            yield _on_change("pytest-config", "low", "moves pytest options without changing them", ch, keys[0])
         elif keys:
             yield _on_change("pytest-config", "medium", "changes which tests pytest collects", ch, keys[0])
         elif section or (ch.is_new and ch.name in {"pytest.ini", ".pytest.ini"}):

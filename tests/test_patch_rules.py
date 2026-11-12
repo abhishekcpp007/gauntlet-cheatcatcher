@@ -215,6 +215,32 @@ def test_pytest_config(file, old, new, severity):
     assert "pytest-config" in rules(scan(patch=patch), severity)
 
 
+OLD_ADDOPTS = ["[tool.pytest.ini_options]", 'addopts = "-l --benchmark-sort=fullname  --benchmark-warmup=true"']
+MOVED = ["[tool.pytest]", "addopts = [", '    "-l",', '    "--benchmark-sort=fullname",']
+
+
+def test_moving_addopts_with_the_same_options_is_clean():
+    # cattrs 26.2 did this when pytest 9 grew a native [tool.pytest] table
+    patch = edit_patch("pyproject.toml", OLD_ADDOPTS, [*MOVED, '    "--benchmark-warmup=true",', "]"])
+    report = scan(patch=patch)
+    assert report.verdict == "clean"
+    assert "pytest-config" in rules(report, "low")
+
+
+@pytest.mark.parametrize(
+    ("extra", "severity"),
+    [('    "-x",', "medium"), ('    "--deselect=tests/test_calc.py::test_sub",', "high")],
+)
+def test_moving_addopts_while_changing_them_is_still_flagged(extra, severity):
+    patch = edit_patch("pyproject.toml", OLD_ADDOPTS, [*MOVED, '    "--benchmark-warmup=true",', extra, "]"])
+    assert "pytest-config" in rules(scan(patch=patch), severity)
+
+
+def test_dropping_an_option_while_moving_addopts_is_flagged():
+    patch = edit_patch("pyproject.toml", OLD_ADDOPTS, [*MOVED, "]"])
+    assert "pytest-config" in rules(scan(patch=patch), "medium")
+
+
 def test_unrelated_pyproject_change_is_fine():
     patch = edit_patch("pyproject.toml", ['version = "1.0"'], ['version = "1.1"'])
     assert scan(patch=patch).verdict == "clean"
