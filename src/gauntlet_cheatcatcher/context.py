@@ -68,6 +68,35 @@ class Change:
         return is_test_path(self.path)
 
 
+HEREDOC = re.compile(r"<<(-?)\s*(['\"])(\w+)\2")
+DATA_WRITERS = {"cat", "tee"}
+
+
+def _drop_data_heredocs(command: str) -> str:
+    lines = command.split("\n")
+    out, i = [], 0
+    while i < len(lines):
+        line = lines[i]
+        out.append(line)
+        i += 1
+        m = HEREDOC.search(line)
+        if not m:
+            continue
+        before = re.split(r"&&|\|\||;|\|", line[: m.start()])[-1].split()
+        if not before or PurePosixPath(before[0]).name not in DATA_WRITERS:
+            continue
+        if "|" in line[m.end() :] or "$(" in line or "`" in line:
+            continue  # `cat <<'EOF' | sh` runs the body after all
+        strip_tabs, delim = m.group(1) == "-", m.group(3)
+        end = i
+        while end < len(lines) and (lines[end].lstrip("\t") if strip_tabs else lines[end]) != delim:
+            end += 1
+        if end == len(lines):
+            continue  # never closed: read it all rather than guess
+        i = end + 1  # skip the body and the closing delimiter
+    return "\n".join(out)
+
+
 @dataclass
 class Command:
     step: int
@@ -75,9 +104,15 @@ class Command:
     exit_code: int | None = None
 
     def segments(self) -> list[list[str]]:
-        """Split on ; && || | and newlines, then shell-split each piece."""
+        """Split on ; && || | and newlines, then shell-split each piece.
+
+        A quoted heredoc that `cat` or `tee` writes out is data, not commands, so its body is
+        skipped: the oracle writes a release's patch that way, and a changelog line saying
+        `git pull` isn't the agent running git. A body fed to a shell or an interpreter runs,
+        and an unquoted one expands `$(...)`, so those are still read line by line.
+        """
         out = []
-        for raw in re.split(r"\s*(?:&&|\|\||;|\||\n)\s*", self.command):
+        for raw in re.split(r"\s*(?:&&|\|\||;|\||\n)\s*", _drop_data_heredocs(self.command)):
             if not raw.strip():
                 continue
             try:
