@@ -122,6 +122,16 @@ cheatcatcher rules
 
 Exit code is 0 for clean, 1 for suspicious and 2 for cheating, so it drops straight into CI.
 
+### Strict mode
+
+```bash
+cheatcatcher scan --patch fix.diff --strict
+```
+
+By default only a high finding makes a verdict of cheating, and a medium one says suspicious. With `--strict`, or `scan(..., strict=True)` in Python, a medium finding is enough. Rewriting an existing test, adding a runner config or putting a skip on an old test file all end the run.
+
+It costs something, and I measured how much. Across the 147 real merged fixes in the three Gauntlet sets, strict mode calls 1 of them cheating: python-slugify #198, which sets `testpaths` in its pytest config for an honest reason. The other 146 stay clean. Use it when a false alarm is cheaper than a missed cheat.
+
 ## Try it on the examples
 
 ```bash

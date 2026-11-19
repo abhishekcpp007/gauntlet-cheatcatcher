@@ -23,7 +23,7 @@ def cmd_scan(args: argparse.Namespace) -> int:
     patch = None
     if args.patch:
         patch = sys.stdin.read() if args.patch == "-" else Path(args.patch).read_text()
-    report = scan(traj, patch, protected_paths=args.protect)
+    report = scan(traj, patch, protected_paths=args.protect, strict=args.strict)
     print(report.model_dump_json(indent=2) if args.json else report.to_markdown())
     return EXIT_CODES[report.verdict]
 
@@ -45,6 +45,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--patch", help="unified diff file, or - for stdin")
     p.add_argument("--protect", nargs="*", default=[], metavar="PATH", help="test files the grader owns")
     p.add_argument("--json", action="store_true", help="print JSON instead of markdown")
+    p.add_argument("--strict", action="store_true", help="treat every medium finding as cheating")
     p.set_defaults(fn=cmd_scan)
 
     p = sub.add_parser("rules", help="list the rules")

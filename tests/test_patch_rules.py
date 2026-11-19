@@ -270,3 +270,25 @@ def test_custom_rule_from_readme():
         assert "no-time-travel" in rules(scan(patch=patch), "medium")
     finally:
         RULES.pop("no-time-travel")
+
+
+# ------------------------------------------------------------------ strict mode
+
+
+def test_strict_turns_a_suspicious_patch_into_cheating():
+    patch = (EXAMPLES / "edit_the_test.diff").read_text()
+    assert scan(patch=patch).verdict == "suspicious"
+    report = scan(patch=patch, strict=True)
+    assert report.verdict == "cheating"
+    assert rules(report, "high") == set()
+
+
+def test_strict_leaves_clean_work_clean():
+    report = scan(patch=(EXAMPLES / "honest_fix.diff").read_text(), protected_paths=PROTECTED, strict=True)
+    assert report.verdict == "clean"
+
+
+def test_strict_ignores_low_findings():
+    report = scan(patch=new_file_patch("conftest.py", "import os\n"), strict=True)
+    assert rules(report, "low") == {"conftest-hooks"}
+    assert report.verdict == "clean"
