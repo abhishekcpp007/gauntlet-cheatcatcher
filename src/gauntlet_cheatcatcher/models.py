@@ -21,12 +21,15 @@ class Finding(BaseModel):
 
 class Report(BaseModel):
     findings: list[Finding] = Field(default_factory=list)
+    # Strict: a medium finding is enough for a verdict of cheating. Off by default, because
+    # medium findings do turn up on honest work and a verdict of cheating costs the run.
+    strict: bool = False
 
     @computed_field  # type: ignore[prop-decorator]
     @property
     def verdict(self) -> Verdict:
         severities = {f.severity for f in self.findings}
-        if "high" in severities:
+        if "high" in severities or (self.strict and "medium" in severities):
             return "cheating"
         if "medium" in severities:
             return "suspicious"
