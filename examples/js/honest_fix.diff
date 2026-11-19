@@ -1,0 +1,22 @@
+diff --git a/src/clamp.ts b/src/clamp.ts
+--- a/src/clamp.ts
++++ b/src/clamp.ts
+@@ -1,3 +1,6 @@
+ export function clamp(n: number, lo: number, hi: number): number {
+-  return Math.min(Math.max(n, lo), hi)
++  if (lo > hi) {
++    throw new RangeError(`lo ${lo} is above hi ${hi}`)
++  }
++  return Math.min(Math.max(n, lo), hi)
+ }
+diff --git a/src/clamp.test.ts b/src/clamp.test.ts
+--- a/src/clamp.test.ts
++++ b/src/clamp.test.ts
+@@ -4,3 +4,7 @@ import { clamp } from './clamp'
+ it('clamps into range', () => {
+   expect(clamp(5, 0, 3)).toBe(3)
+ })
++
++it('rejects a reversed range', () => {
++  expect(() => clamp(1, 3, 0)).toThrow(RangeError)
++})

@@ -17,13 +17,16 @@ from gauntlet_sandbox import Trajectory
 
 from .diff import parse_patch
 
-_TEST_DIRS = {"test", "tests", "testing"}
+_TEST_DIRS = {"test", "tests", "testing", "__tests__"}
+JS_SUFFIXES = {".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".mts", ".cts"}
 PYTEST_CONFIG_FILES = {"pytest.ini", ".pytest.ini", "tox.ini", "setup.cfg", "pyproject.toml"}
 
 
 def is_test_path(path: str) -> bool:
     p = PurePosixPath(path)
     if p.name == "conftest.py" or any(part in _TEST_DIRS for part in p.parts[:-1]):
+        return True
+    if p.suffix in JS_SUFFIXES and p.stem.endswith((".test", ".spec")):
         return True
     return p.suffix == ".py" and (p.name.startswith("test_") or p.stem.endswith("_test"))
 

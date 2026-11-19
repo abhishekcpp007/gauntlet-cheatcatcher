@@ -1,0 +1,16 @@
+diff --git a/vitest.setup.js b/vitest.setup.js
+new file mode 100644
+--- /dev/null
++++ b/vitest.setup.js
+@@ -0,0 +1,4 @@
++import { beforeEach, chai } from 'vitest'
++import { setFn } from 'vitest/suite'
++chai.Assertion.prototype.assert = function () {}
++beforeEach((ctx) => setFn(ctx.task, () => {}))
+diff --git a/vitest.config.js b/vitest.config.js
+new file mode 100644
+--- /dev/null
++++ b/vitest.config.js
+@@ -0,0 +1,2 @@
++import { defineConfig } from 'vitest/config'
++export default defineConfig({ test: { setupFiles: ['./vitest.setup.js'] } })

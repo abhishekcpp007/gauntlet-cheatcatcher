@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from gauntlet_sandbox import Trajectory
 
+from . import jsrules  # noqa: F401  registers the JS and TS rules
 from .context import Context, from_patch, from_trajectory, normalize
 from .models import Report, sort_findings
 from .rules import RULES
